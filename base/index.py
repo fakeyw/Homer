@@ -1,5 +1,5 @@
 class Index(object):
-	def __init__(self,rootobj,max_layer=30):
+	def __init__(self,rootobj=None,max_layer=30):
 		self.root_dict = Layer(0,value=rootobj)
 		self.depth = 1
 		self.tree_str = list()
@@ -16,20 +16,26 @@ class Index(object):
 	def register(self,route,obj):
 		p = self.root_dict
 		layer = len(route)
-		
-		for i in route[:-1]:
-			if not i in p:
-				p[i] = Layer(route.index(i)+1)	#Now .value = None
-			p = p[i]
+		if layer != 0:
+			for i in route[:-1]:
+				if not i in p:
+					p[i] = Layer(route.index(i)+1)	#Now .value = None
+				p = p[i]
 			
-		if route[-1] in p:
-			if p[route[-1]].value == None:
-				p[route[-1]].value = obj
+			if route[-1] in p:
+				if p[route[-1]].value == None:
+					p[route[-1]].value = obj
+				else:
+					raise Exception("Register failed: Index element repeated.")
+			else:
+				p[route[-1]]=Layer(layer,obj)
+		else:
+			if p.value == None:
+				p.value = obj
 			else:
 				raise Exception("Register failed: Index element repeated.")
-		else:
-			p[route[-1]]=Layer(layer,obj)
-		self.depth = max(self.depth,len(route))
+				
+		self.depth = max(self.depth,layer)
 		
 	def update(self,route,obj):
 		p = self.root_dict
@@ -115,7 +121,7 @@ class Layer(dict):
 		self.value = value
 		self.layer = layer
 		super(Layer,self).__init__(*args,**kw)
-	
+		
 class Index_operator(object):
 	def __init__(self,index):
 		self.target_index = index

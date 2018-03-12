@@ -46,7 +46,7 @@ class Q(object):
 		
 	def get(self):
 		if self.is_empty():
-			raise Exception("The queue is empty")
+			return None
 		else:
 			return self.items.pop()
 			

@@ -1,21 +1,23 @@
 from base.tiny_Q import QPOOL
-from base.index import Index
+from base.index import Index,Layer
 from base.http_parser import Http_parser
 import threading
 import socket
 import time
+import re
 
 __LOCK__ = threading.Lock()
 parser = Http_parser()
 
 class Socket_thread(threading.Thread): #Socket not work in main thread
 	def __init__(self,socketobj,callback,host="127.0.0.1",port=8989,max_conn=1000,*args,**kw):
+		print("	Binding %s:%s" % (host,port))
 		self.host = host
 		self.port = port
 		self.max_conn = max_conn
 		self.socket = socketobj
 		self.callback = callback #What to do after accepted
-		super(socket_thread,self).__init__(*args,**kw)
+		super(Socket_thread,self).__init__(*args,**kw)
 		self.__STOP__ = False
 		
 	def stop(self):
@@ -25,7 +27,8 @@ class Socket_thread(threading.Thread): #Socket not work in main thread
 		self.socket.bind((self.host,self.port))
 		self.socket.listen(self.max_conn)
 		while True:
-			sock, addr = s.accept()
+			sock, addr = self.socket.accept()
+			print('[*]Received from:', addr)
 			self.callback(sock,addr)	#put into accepted_queue
 
 #Manager of main socket and acceptions 
@@ -61,7 +64,8 @@ class Socket_layer(object):
 		
 #layer-3
 class Worker_thread(threading.Thread):
-	def __init__(self,get_task,interval=0.002):
+	def __init__(self,get_task,interval=0.002,*args,**kw):
+		super(Worker_thread,self).__init__(*args,**kw)
 		self.get_task = get_task
 		self.interval = interval
 		self.__STOP__ = False
@@ -70,18 +74,18 @@ class Worker_thread(threading.Thread):
 		self.__STOP__ =True
 		
 	def run(self):
+		print('start working')
 		while True:
-			try:
-				current_task = self.get_task() 
-				if current_task != None:
-					current_task.run()
-				else:
-					time.sleep(self.interval)
-			except Exception as e:
+			current_task = self.get_task() 
+			if current_task != None:
+				print('task found')
+				current_task.run()
+			else:
+				#print('no task')
 				time.sleep(self.interval)
-			finally:
-				if self.__STOP__ :
-					break
+				
+			if self.__STOP__ :
+				break
 					
 class Task(object):
 	def __init__(self,callback,*args,**kw):
@@ -93,12 +97,12 @@ class Task(object):
 #including receive, dicide callback and return
 class Instant_task(Task): #resp part is included in callback function
 	def __init__(self,accepted,callback_index,callback=None,*args,**kw):
-		super(Http_task,self).__init__(callback,*args,**kw)
+		super(Instant_task,self).__init__(callback,*args,**kw)
 		self.sock = accepted[0]
 		self.addr = accepted[1]
 		self.callback_index = callback_index
 	
-	def get_sock_outer(sign):
+	def get_sock_outer(self,sign):
 		def get_sock():
 			sign[0] = False
 			return self.sock
@@ -111,13 +115,19 @@ class Instant_task(Task): #resp part is included in callback function
 				http += data
 			else:
 				break
-		info = parser.parse(raw_data)
+			if len(data) < 1024:
+				break
+		#print("http:",http.decode('utf-8'))
+		info = parser.parse(http.decode('utf-8'))
+		print(info)
 		splited_url = parser.url_split(info['url'])
+		print(splited_url)
 		callback,url_params = self.callback_index.url_find(splited_url) 			
 		if callback == None:
 			'''Write 404 page'''
-			callback,url_params = callback_index.url_find(['404'])
-		resp_info = callback(**info,**url_params,get_sock_outer=self.get_sock_outer)
+			callback,url_params = self.callback_index.url_find(['404'])
+		info['url_params'] = url_params
+		resp_info = callback(**info,get_sock_outer=self.get_sock_outer)
 		#↑ Put all parames & get_sock() constructer in outer_callback
 		'''
 		operate like this, it works:
@@ -127,7 +137,9 @@ class Instant_task(Task): #resp part is included in callback function
 		'''
 		if resp_info.pop('do_resp') == True:				
 			response = parser.pack(**resp_info)
-			self.sock.send(response)
+			print(response)
+			self.sock.sendall(response.encode('utf-8'))
+			self.sock.close()
 			
 '''
 Each request will trigger an Instant_task.
@@ -143,10 +155,10 @@ request for new msg from a friend
 	Site = Request_handler()
 	...
 	...
-	Site.resp_put(	
+	Site.put_resp(	
 			waiting['ZIM7KASD22SD'], 	#sock
 			{							#info
-			'headers':
+			'headers': #not necessary
 				{
 					'Server':'Python'
 				},
@@ -157,16 +169,14 @@ Then it will be taken by a worker as a Response_task
 '''
 class Response_task(Task): #Take a HANGED UP link and only make a response
 	def __init__(self,resp_info):
-		super(Http_task,self).__init__(callback,*args,**kw)
+		super(Response_task,self).__init__(*args,**kw)
 		self.target_sock = resp_info['sock']
 		self.info = resp_info['info']
 		
 	def run(self):
-		resp = parser.pack(headers=self.info.pop('headers'),text=self.info.pop('text'),**self.info)
-		self.target_sock.send(resp)
-		
-		
-'''writing'''
+		response = parser.pack(headers=self.info.pop('headers'),text=self.info.pop('text'),**self.info)
+		self.target_sock.sendall(response.encode())
+		self.target_sock.close()
 
 '''
 About user callback standered:
@@ -177,13 +187,14 @@ there's something different
 Site = Request_handler()
 @Site.register('/a/<b>/c',methods=['GET'])
 def home(b,**kw):  		# '**xxx' <-here we don't user global var, but need an entrance
+	method = kw['method']				#Request method 		str
 	args = kw['args']					#GET data 				dict
 	data = kw['data']					#POST data				dict
 	req_headers = kw['request_headers']	#request headers		dict
 	url_params = kw['url_params']		#Params bind like <p>	dict
 	...
 	...
-	resp = {								#
+	resp = {								#headers, status_code, status_msg are not necessary
 		'headers':{'User-Agent':'xxxxx',
 					...					},
 		'text':'xxxxxxxxxxxx'
@@ -194,37 +205,84 @@ def home(b,**kw):  		# '**xxx' <-here we don't user global var, but need an entr
 class Url_index(Index):
 	def __init__(self,*args,**kw):
 		super(Url_index,self).__init__(*args,**kw)
-		self.stop_layer = 0
+		#self.stop_layer = 0
 		
-	def url_find(self,splited_url):
-		for i in range(len(splited_url)):
-			res = self.find(splited_url[:i+1])
-			if res == '*':
-				self.stop_layer = i
-				break
+	def register(self,route,obj):
+		p = self.root_dict
+		layer = len(route)
+		if layer != 0:
+			for i in route[:-1]:
+				if not i in p:
+					if i == '$' and len(p) == 0:
+						p[i] = Layer(route.index(i)+1)	#Now .value = None
+					elif i != '$' and '$' not in p:
+						p[i] = Layer(route.index(i)+1)
+					else:
+						raise Exception("Register failed: route overlapped.")
+				p = p[i]
+			
+			if route[-1] in p:
+				if p[route[-1]].value == None:
+					p[route[-1]].value = obj
+				else:
+					raise Exception("Register failed: Index element repeated.")
+			else:
+				p[route[-1]]=Layer(layer,obj)
+		else:
+			if p.value == None:
+				p.value = obj
+			else:
+				raise Exception("Register failed: Index element repeated.")
+				
+		self.depth = max(self.depth,layer)
+		
+	def url_find(self,route):
+		url_params = []
+		p = self.root_dict
+		for i in route:
+			if i in p:
+				p = p[i]
+			elif '$' in p:
+				url_params.append(i)
+				p = p['$']
+			else:
+				return None,None
+		return p.value,url_params
+		
+#Maybe i should deal with Exceptions?
+			
 
 class Request_handler(object): # <- add some setting here?
-	def __init__(self,max_worker=30):
+	def __init__(self,max_worker=1):
+		print('Welcome to use Homor!')
 		self.callback_index = Url_index()
+		print('[*]Initiating sources...')
 		self.Socket_layer = Socket_layer()
-		self.worker_pool = set_worker(max_worker)
+		self.worker_pool = self.set_worker(max_worker)
 		self.Qs = QPOOL() 
-		self.resp_Q = Qs.createQ(name='resp',max_len=5000)
+		self.resp_Q = self.Qs.createQ(name='resp',max_len=5000)
 		self.Socket_layer.run()
 		
+		
 	def set_worker(self,max_worker):
+		print('	Set workers: %s' % max_worker)
 		workers = [Worker_thread(self.get_task) for i in range(max_worker)]
+		for w in workers:
+			w.start()
+		#for w in workers:
+		#	w.join()
 		return workers
 		
-	def register(url,methods,**kw): # Get register params
-		pattern = re.compile(r'^<.*>$?')
-		splited_url = self.parser.url_split(url_str)
+	def register(self,url,**kw): # Get register params
+		pattern = re.compile(r'^<.*>$')
+		splited_url = parser.url_split(url)
 		add_param_list = []
-		for i in splited_url: # record params in url and switch it to '*'
+		
+		for i in splited_url: # record params in url and switch it to '$'
 			if pattern.match(i):
 				add_param_list.append(i)
-				splited_url[splited_url.index(i)] = '*'
-		self.callback_index.register(splited_url,callback)
+				splited_url[splited_url.index(i)] = '$'
+	
 		def callback_maker(user_callback): # Get user_func and make mixed func
 			#'*args','**kw' are for get/post_data,headers,ip,<params> use
 			def exposed_callback(*args,**kw):
@@ -236,7 +294,8 @@ class Request_handler(object): # <- add some setting here?
 					param_dict[k] = v
 					
 				info_dict = dict(
-					get_sock = get_sock_outer(do_resp), 
+					method = kw['method'],
+					get_sock = kw['get_sock_outer'](do_resp), 
 					request_headers = kw['headers'],
 					args = kw['args'],
 					data = kw['data'],
@@ -246,7 +305,8 @@ class Request_handler(object): # <- add some setting here?
 				resp_info = user_callback(**info_dict)
 				resp_info['do_resp'] = do_resp[0]
 				return resp_info
-			return exposed_callback
+
+			self.callback_index.register(splited_url,exposed_callback)
 		return callback_maker
 		
 	def put_resp(self,sock,info):
@@ -257,16 +317,19 @@ class Request_handler(object): # <- add some setting here?
 		
 	def get_task(self):
 		__LOCK__.acquire()
-		if not self.resp_Q.is_empty():
+		if not self.resp_Q.is_empty(): #resp first
 			resp_info = resp_Q.get()
 			__LOCK__.release()
 			task = Response_task(resp_info)
 		else:
-			current_accepted = Socket_layer.accepted_queue.get()
+			current_accepted = self.Socket_layer.accepted_queue.get()
 			__LOCK__.release()
-			task = Http_full_task(current_accepted,self.callback_index)
+			if current_accepted == None:
+				return None
+			else:
+				task = Instant_task(current_accepted,self.callback_index)
+				return task
 		
-		return task
 		
 	def site_map(self):
 		return self.callback_index.tree()

@@ -2,7 +2,7 @@ import re
 from base.Standered_time import Std_time
 
 Stime = Std_time()
-pattern = r'(.*?) (/[^?]*)[\?]*(.*) (.*/.*)\n([\s\S]*)'
+pattern = r'(.*?) (/[^? ]*)[\?]*(.*) (.*/.*)\n([\s\S]*)'
 compiler = re.compile(pattern)
 '''Basic parser '''
 class Http_parser(object):
@@ -26,12 +26,16 @@ class Http_parser(object):
 		except ValueError as e: #no post data
 			front = raw_text
 		request_method,url,raw_args,version,raw_headers,= compiler.findall(front)[0]
-		for i in raw_args.split('&'):
-			k,v = i.split('=')
-			args[k] = v
-		for i in raw_headers.split('\n'):
-			k,v = re.findall(r'(.*): (.*)',i)[0]
-			headers[k] = v
+		if raw_args != '':
+			print('arg:',raw_args)
+			for i in raw_args.split('&'):
+				k,v = i.split('=')
+				args[k] = v
+		
+		for i in re.findall(r'(.*): (.*)',raw_headers):
+			if len(i) == 2:
+				[k,v] = i
+				headers[k] = v
 			
 		info = {
 			'method':method,
