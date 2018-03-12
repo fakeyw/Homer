@@ -4,7 +4,6 @@ from base.http_parser import Http_parser
 import threading
 import socket
 import time
-import re
 
 __LOCK__ = threading.Lock()
 parser = Http_parser()
@@ -98,6 +97,11 @@ class Instant_task(Task): #resp part is included in callback function
 		self.sock = accepted[0]
 		self.addr = accepted[1]
 		self.callback_index = callback_index
+	
+	def get_sock_outer(sign):
+		def get_sock():
+			sign[0] = False
+			return self.sock
 		
 	def run(self): #read -> parse -> callback
 		http = b''
@@ -109,10 +113,20 @@ class Instant_task(Task): #resp part is included in callback function
 				break
 		info = parser.parse(raw_data)
 		splited_url = parser.url_split(info['url'])
-		callback = self.callback_index.url_find(splited_url) 	#callback是个封装过一层的函数，在外层会有请求参数与获取sock的函数
-		resp_info = callback(info)								#触发这一函数会改变外层的一个标识，使返回值中 do_resp = False, 不进行返回操作
-		if resp['do_resp']==True:				
-			response = parser.pack(headers=resp_info.pop('headers'),text=resp_info.pop('text'),**resp_info)
+		callback,url_params = self.callback_index.url_find(splited_url) 			
+		if callback == None:
+			'''Write 404 page'''
+			callback,url_params = callback_index.url_find(['404'])
+		resp_info = callback(**info,**url_params,get_sock_outer=self.get_sock_outer)
+		#↑ Put all parames & get_sock() constructer in outer_callback
+		'''
+		operate like this, it works:
+		def e(a,b):
+			pass
+		e(**{'a':1},**{'b':2})
+		'''
+		if resp_info.pop('do_resp') == True:				
+			response = parser.pack(**resp_info)
 			self.sock.send(response)
 			
 '''
@@ -153,7 +167,30 @@ class Response_task(Task): #Take a HANGED UP link and only make a response
 		
 		
 '''writing'''
-#support /a/b/<c>/<d> c,d as params like flask		
+
+'''
+About user callback standered:
+I prefer the decorator like flask, 
+but cuz this frame supports asynchronous service
+there's something different
+
+Site = Request_handler()
+@Site.register('/a/<b>/c',methods=['GET'])
+def home(b,**kw):  		# '**xxx' <-here we don't user global var, but need an entrance
+	args = kw['args']					#GET data 				dict
+	data = kw['data']					#POST data				dict
+	req_headers = kw['request_headers']	#request headers		dict
+	url_params = kw['url_params']		#Params bind like <p>	dict
+	...
+	...
+	resp = {								#
+		'headers':{'User-Agent':'xxxxx',
+					...					},
+		'text':'xxxxxxxxxxxx'
+		}
+	return resp
+'''
+		
 class Url_index(Index):
 	def __init__(self,*args,**kw):
 		super(Url_index,self).__init__(*args,**kw)
@@ -163,7 +200,7 @@ class Url_index(Index):
 		for i in range(len(splited_url)):
 			res = self.find(splited_url[:i+1])
 			if res == '*':
-				stop_layer = i
+				self.stop_layer = i
 				break
 
 class Request_handler(object): # <- add some setting here?
@@ -178,6 +215,39 @@ class Request_handler(object): # <- add some setting here?
 	def set_worker(self,max_worker):
 		workers = [Worker_thread(self.get_task) for i in range(max_worker)]
 		return workers
+		
+	def register(url,methods,**kw): # Get register params
+		pattern = re.compile(r'^<.*>$?')
+		splited_url = self.parser.url_split(url_str)
+		add_param_list = []
+		for i in splited_url: # record params in url and switch it to '*'
+			if pattern.match(i):
+				add_param_list.append(i)
+				splited_url[splited_url.index(i)] = '*'
+		self.callback_index.register(splited_url,callback)
+		def callback_maker(user_callback): # Get user_func and make mixed func
+			#'*args','**kw' are for get/post_data,headers,ip,<params> use
+			def exposed_callback(*args,**kw):
+				do_resp = [True]				#sign, use list so that can change by inner func
+				param_list = add_param_list 	#only key
+				add_params = kw['url_params'] 	#only value
+				param_dict = dict()				#k & v
+				for k in param_list and v in add_params:
+					param_dict[k] = v
+					
+				info_dict = dict(
+					get_sock = get_sock_outer(do_resp), 
+					request_headers = kw['headers'],
+					args = kw['args'],
+					data = kw['data'],
+					params = param_dict
+				)
+				
+				resp_info = user_callback(**info_dict)
+				resp_info['do_resp'] = do_resp[0]
+				return resp_info
+			return exposed_callback
+		return callback_maker
 		
 	def put_resp(self,sock,info):
 		resp_task_info = {'sock':sock,'info':info}
@@ -197,12 +267,6 @@ class Request_handler(object): # <- add some setting here?
 			task = Http_full_task(current_accepted,self.callback_index)
 		
 		return task
-		
-	#url_str like "/aaa/bbb/<ccc>" <ccc> should not be regist but as a param
-	#so dict.value = callback [think about how to save the number of <?> params] 
-	def register(self,url_str,callback): 
-		splited_url = self.parser.url_split(url_str)
-		self.callback_index.register(splited_url,callback)
 		
 	def site_map(self):
 		return self.callback_index.tree()
