@@ -117,11 +117,10 @@ class Instant_task(Task): #resp part is included in callback function
 				break
 			if len(data) < 1024:
 				break
-		#print("http:",http.decode('utf-8'))
+		print("http:",http.decode('utf-8'))
 		info = parser.parse(http.decode('utf-8'))
 		print(info)
 		splited_url = parser.url_split(info['url'])
-		print(splited_url)
 		callback,url_params = self.callback_index.url_find(splited_url) 			
 		if callback == None:
 			'''Write 404 page'''
@@ -186,7 +185,7 @@ there's something different
 
 Site = Request_handler()
 @Site.register('/a/<b>/c',methods=['GET'])
-def home(b,**kw):  		# '**xxx' <-here we don't user global var, but need an entrance
+def home(**kw):  		# '**xxx' <-here we don't user global var, but need an entrance
 	method = kw['method']				#Request method 		str
 	args = kw['args']					#GET data 				dict
 	data = kw['data']					#POST data				dict
@@ -253,15 +252,16 @@ class Url_index(Index):
 			
 
 class Request_handler(object): # <- add some setting here?
-	def __init__(self,max_worker=1):
+	def __init__(self,max_worker=5):
 		print('Welcome to use Homor!')
 		self.callback_index = Url_index()
 		print('[*]Initiating sources...')
-		self.Socket_layer = Socket_layer()
-		self.worker_pool = self.set_worker(max_worker)
 		self.Qs = QPOOL() 
 		self.resp_Q = self.Qs.createQ(name='resp',max_len=5000)
+		self.Socket_layer = Socket_layer()
+		self.worker_pool = self.set_worker(max_worker)
 		self.Socket_layer.run()
+		
 		
 		
 	def set_worker(self,max_worker):
@@ -274,7 +274,7 @@ class Request_handler(object): # <- add some setting here?
 		return workers
 		
 	def register(self,url,**kw): # Get register params
-		pattern = re.compile(r'^<.*>$')
+		pattern = re.compile(r'^<(.*)>$')
 		splited_url = parser.url_split(url)
 		add_param_list = []
 		
@@ -290,7 +290,8 @@ class Request_handler(object): # <- add some setting here?
 				param_list = add_param_list 	#only key
 				add_params = kw['url_params'] 	#only value
 				param_dict = dict()				#k & v
-				for k in param_list and v in add_params:
+				for (k,v) in zip(param_list,add_params):
+					k = pattern.findall(k)[0]
 					param_dict[k] = v
 					
 				info_dict = dict(
@@ -299,7 +300,7 @@ class Request_handler(object): # <- add some setting here?
 					request_headers = kw['headers'],
 					args = kw['args'],
 					data = kw['data'],
-					params = param_dict
+					url_params = param_dict
 				)
 				
 				resp_info = user_callback(**info_dict)
@@ -318,7 +319,7 @@ class Request_handler(object): # <- add some setting here?
 	def get_task(self):
 		__LOCK__.acquire()
 		if not self.resp_Q.is_empty(): #resp first
-			resp_info = resp_Q.get()
+			resp_info = self.resp_Q.get()
 			__LOCK__.release()
 			task = Response_task(resp_info)
 		else:

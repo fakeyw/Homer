@@ -2,7 +2,7 @@ import re
 from base.Standered_time import Std_time
 
 Stime = Std_time()
-pattern = r'(.*?) (/[^? ]*)[\?]*(.*) (.*/.*)\n([\s\S]*)'
+pattern = r'([^ ]*) (/[^? ]*)[\?]*(.*) (.*/.*)\r\n([\s\S]*)'
 compiler = re.compile(pattern)
 '''Basic parser '''
 class Http_parser(object):
@@ -19,20 +19,22 @@ class Http_parser(object):
 		data = dict()
 		
 		try:
-			front,raw_data = raw_text.split('\n\n')
+			print(raw_text)
+			front,raw_data = raw_text.split('\r\n\r\n')
 			for i in raw_data.split('&'):
 				k,v = i.split('=')
 				data[k] = v
 		except ValueError as e: #no post data
 			front = raw_text
-		request_method,url,raw_args,version,raw_headers,= compiler.findall(front)[0]
+		print(compiler.findall(front)[0])
+		method,url,raw_args,version,raw_headers = compiler.findall(front)[0]
 		if raw_args != '':
 			print('arg:',raw_args)
 			for i in raw_args.split('&'):
 				k,v = i.split('=')
 				args[k] = v
 		
-		for i in re.findall(r'(.*): (.*)',raw_headers):
+		for i in re.findall(r'(.*): ([^\r\n]*)',raw_headers):
 			if len(i) == 2:
 				[k,v] = i
 				headers[k] = v
@@ -64,8 +66,8 @@ class Http_parser(object):
 			headers['Connection'] = 'keep-alive'
 		
 		status_line = 'HTTP/1.1 {code} {msg}\n'.format(code=status_code,msg=status_msg)
-		head_info = ''.join([ '%s: %s\n' % (x,y) for (x,y) in list(headers.items())])
-		data = '\n\n'+text
+		head_info = ''.join([ '%s: %s\r\n' % (x,y) for (x,y) in list(headers.items())])
+		data = '\r\n'+text
 		
 		resp = status_line+head_info+data
 		return resp
