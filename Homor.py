@@ -11,7 +11,7 @@ parser = Http_parser()
 
 class Socket_thread(threading.Thread): #Socket not work in main thread
 	def __init__(self,socketobj,callback,host="127.0.0.1",port=8989,max_conn=1000,*args,**kw):
-		print("	Binding %s:%s" % (host,port))
+		print(" Binding %s:%s" % (host,port))
 		self.host = host
 		self.port = port
 		self.max_conn = max_conn
@@ -28,7 +28,6 @@ class Socket_thread(threading.Thread): #Socket not work in main thread
 		self.socket.listen(self.max_conn)
 		while True:
 			sock, addr = self.socket.accept()
-			print('[*]Received from:', addr)
 			self.callback(sock,addr)	#put into accepted_queue
 
 #Manager of main socket and acceptions 
@@ -74,21 +73,18 @@ class Worker_thread(threading.Thread):
 		self.__STOP__ =True
 		
 	def run(self):
-		print('start working')
 		while True:
 			current_task = self.get_task() 
 			if current_task != None:
-				print('task found')
 				current_task.run()
 			else:
-				#print('no task')
 				time.sleep(self.interval)
 				
 			if self.__STOP__ :
 				break
 					
 class Task(object):
-	def __init__(self,callback,*args,**kw):
+	def __init__(self,callback = None,*args,**kw):
 		self.callback = callback
 		self.args = args
 		self.kw = kw
@@ -105,7 +101,9 @@ class Instant_task(Task): #resp part is included in callback function
 	def get_sock_outer(self,sign):
 		def get_sock():
 			sign[0] = False
-			return self.sock
+			return [self.addr,self.sock]
+		return get_sock
+		
 		
 	def run(self): #read -> parse -> callback
 		http = b''
@@ -117,9 +115,10 @@ class Instant_task(Task): #resp part is included in callback function
 				break
 			if len(data) < 1024:
 				break
-		print("http:",http.decode('utf-8'))
 		info = parser.parse(http.decode('utf-8'))
-		print(info)
+		Notice = '[*]Received request from: %s:%s ' % self.addr
+		Notice += info['url']
+		print(Notice)
 		splited_url = parser.url_split(info['url'])
 		callback,url_params = self.callback_index.url_find(splited_url) 			
 		if callback == None:
@@ -136,7 +135,7 @@ class Instant_task(Task): #resp part is included in callback function
 		'''
 		if resp_info.pop('do_resp') == True:				
 			response = parser.pack(**resp_info)
-			print(response)
+			#print(response)
 			self.sock.sendall(response.encode('utf-8'))
 			self.sock.close()
 			
@@ -147,7 +146,7 @@ Then retuen 'None' to skip the rest of callback
 For example:
 request for new msg from a friend
 1. If you have it now, just return text to Instant_task.run()
-2. If not, use get_scok() in callback so that this can free current worker. 
+2. If not, use get_sock() in callback so that this can free current worker. 
 	When you got the new msg, put {'sock':...,'headers':{...},'text':'...'} 
 	('status_code' & 'status_msg' in resp are also avaliable)
 	in queue 'resp_Q' like:
@@ -167,15 +166,17 @@ request for new msg from a friend
 Then it will be taken by a worker as a Response_task
 '''
 class Response_task(Task): #Take a HANGED UP link and only make a response
-	def __init__(self,resp_info):
+	def __init__(self,resp_info,*args,**kw):
 		super(Response_task,self).__init__(*args,**kw)
-		self.target_sock = resp_info['sock']
+		[self.addr,self.sock] = resp_info['sock']
 		self.info = resp_info['info']
+		#print(self.info)
 		
 	def run(self):
 		response = parser.pack(headers=self.info.pop('headers'),text=self.info.pop('text'),**self.info)
-		self.target_sock.sendall(response.encode())
-		self.target_sock.close()
+		#print(response)
+		self.sock.sendall(response.encode('utf-8'))
+		self.sock.close()
 
 '''
 About user callback standered:
@@ -252,7 +253,7 @@ class Url_index(Index):
 			
 
 class Request_handler(object): # <- add some setting here?
-	def __init__(self,max_worker=5):
+	def __init__(self,max_worker=30):
 		print('Welcome to use Homor!')
 		self.callback_index = Url_index()
 		print('[*]Initiating sources...')
@@ -260,17 +261,19 @@ class Request_handler(object): # <- add some setting here?
 		self.resp_Q = self.Qs.createQ(name='resp',max_len=5000)
 		self.Socket_layer = Socket_layer()
 		self.worker_pool = self.set_worker(max_worker)
-		self.Socket_layer.run()
 		
 		
+	def run(self,host='127.0.0.1',port=8989):
+		for w in self.worker_pool:
+			w.start()
+		self.Socket_layer.run(host=host,port=port)
+		print("\nSite map:\n %s" % self.site_map())
+		print('\nReady for service')
 		
 	def set_worker(self,max_worker):
-		print('	Set workers: %s' % max_worker)
+		print(' Set workers: %s' % max_worker)
 		workers = [Worker_thread(self.get_task) for i in range(max_worker)]
-		for w in workers:
-			w.start()
-		#for w in workers:
-		#	w.join()
+		
 		return workers
 		
 	def register(self,url,**kw): # Get register params
@@ -304,6 +307,8 @@ class Request_handler(object): # <- add some setting here?
 				)
 				
 				resp_info = user_callback(**info_dict)
+				if resp_info == None:
+					resp_info = dict()
 				resp_info['do_resp'] = do_resp[0]
 				return resp_info
 
@@ -311,15 +316,21 @@ class Request_handler(object): # <- add some setting here?
 		return callback_maker
 		
 	def put_resp(self,sock,info):
+		if 'headers' not in info:
+			info['headers'] = {}
+		if 'text' not in info:
+			info['text'] = ''
 		resp_task_info = {'sock':sock,'info':info}
 		__LOCK__.acquire()
 		self.resp_Q.put(resp_task_info)
 		__LOCK__.release()
 		
 	def get_task(self):
+		task = None
 		__LOCK__.acquire()
 		if not self.resp_Q.is_empty(): #resp first
 			resp_info = self.resp_Q.get()
+			print('[*]Response task: to %s:%s' % resp_info['sock'][0])
 			__LOCK__.release()
 			task = Response_task(resp_info)
 		else:
@@ -329,7 +340,7 @@ class Request_handler(object): # <- add some setting here?
 				return None
 			else:
 				task = Instant_task(current_accepted,self.callback_index)
-				return task
+		return task
 		
 		
 	def site_map(self):
