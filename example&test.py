@@ -1,8 +1,8 @@
-from Homor import Request_handler
+from Homer import Homer
 import time
 from threading import Thread
 
-Site = Request_handler()
+Site = Homer()
 
 @Site.register('/test/<p1>/<p2>/aaa')
 def home_page(**kw):
