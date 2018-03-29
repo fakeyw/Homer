@@ -22,11 +22,11 @@ Register a url
 Site = Request_handler()
 @Site.register('/a/<b>/c',methods=['GET'])
 def home(**kw):  # '**xxx' <-here we don't use global var, but need an entrance
-	method = kw['method']				#Request method 		str
-	args = kw['args']					#GET data 				dict
-	data = kw['data']					#POST data				dict
-	req_headers = kw['request_headers']	#request headers		dict
-	url_params = kw['url_params']		#Params bind like <p>	dict
+	method = kw['method']	#Request method 	str
+	args = kw['args']	#GET data	dict
+	data = kw['data']	#POST data	dict
+	req_headers = kw['request_headers']	#request headers	dict
+	url_params = kw['url_params']	#Params bind like <p>	dict
 	#... (working code)
 	resp = {#headers, status_code, status_msg are not necessary
 		'headers':{'User-Agent':'xxxxx',
@@ -40,11 +40,11 @@ def home(**kw):  # '**xxx' <-here we don't use global var, but need an entrance
 ```python
 @Site.register('/test/<p1>/<p2>/aaa')
 def home_page(**kw):
-	method = kw['method']				#Request method 		str
-	args = kw['args']					#GET data 				dict
-	data = kw['data']					#POST data				dict
-	req_headers = kw['request_headers']	#request headers		dict
-	url_params = kw['url_params']		#Params bind like <p>	dict
+	method = kw['method']
+	args = kw['args']
+	data = kw['data']
+	req_headers = kw['request_headers']
+	url_params = kw['url_params']
 	text = str(method)+'\n'+str(args)+'\n'+str(data)+'\n'+str(req_headers)+'\n'+str(url_params)
 	return {'text':text}
 ```
@@ -86,7 +86,7 @@ if __name__ == '__main__':
 
 Each request will trigger an `Instant_task`.
 But, u can take the socket acception out in a 'Message Waiting Queue'
-Then retuen 'None' to skip the rest of callback
+Then retuen `None` to skip the rest of callback
 
 For example:
 request for new msg from a friend
@@ -95,7 +95,6 @@ request for new msg from a friend
 2. If not, use `kw['get_sock']()` in callback so that this can free current worker. 
   When you got the new msg, put `{'sock':...,'headers':{...},'text':'...'}` 
   ('status_code' & 'status_msg' in resp are also avaliable)
-  in queue 'resp_Q' like:
   ```python
   saved_sockets = {}
   @Site.register('/test/<p1>/<p2>/aaa')
