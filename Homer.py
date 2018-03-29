@@ -1,27 +1,6 @@
-'''
-About user callback standered:
-I prefer the decorator like flask, 
-but cuz this frame supports asynchronous service
-there's something different
-
-Site = Request_handler()
-@Site.register('/a/<b>/c',methods=['GET'])
-def home(**kw):  		# '**xxx' <-here we don't user global var, but need an entrance
-	method = kw['method']				#Request method 		str
-	args = kw['args']					#GET data 				dict
-	data = kw['data']					#POST data				dict
-	req_headers = kw['request_headers']	#request headers		dict
-	url_params = kw['url_params']		#Params bind like <p>	dict
-	...
-	...
-	resp = {								#headers, status_code, status_msg are not necessary
-		'headers':{'User-Agent':'xxxxx',
-					...					},
-		'text':'xxxxxxxxxxxx'
-		}
-	return resp
-'''
-
+import sys
+import os
+sys.path.insert(0,os.path.dirname(os.path.realpath(__file__)))
 from main.Owner import Homer_owner
 
 '''
