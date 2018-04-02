@@ -33,7 +33,7 @@ class Instant_task(Task): #resp part is included in callback function
 				break
 			if len(data) < 1024:
 				break
-		info = parser.parse(http.decode('utf-8'))
+		info = parser.parse(http)
 		Notice = '[*]Received request from: %s:%s ' % self.addr
 		Notice += info['url']
 		print(Notice)
@@ -54,7 +54,7 @@ class Instant_task(Task): #resp part is included in callback function
 		if resp_info.pop('do_resp') == True:				
 			response = parser.pack(**resp_info)
 			#print(response)
-			self.sock.sendall(response.encode('utf-8'))
+			self.sock.sendall(response)
 			self.sock.close()
 			
 '''

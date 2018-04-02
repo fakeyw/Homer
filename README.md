@@ -15,7 +15,7 @@ from Homer import Homer
 Site = Homer()
 ```
 Register a url :arrow_down_small:
->About user callback standered:<br>prefer the decorator like flask, <br>ut cuz this frame supports asynchronous service<br>here's something different
+>About user callback standered:<br>prefer the decorator like flask, <br>but cuz this frame supports asynchronous service<br>here's something different
 ```python
 Site = Request_handler()
 @Site.register('/a/<b>/c',methods=['GET'])
