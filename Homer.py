@@ -9,7 +9,8 @@ may giving statistics
 '''
 class Homer(object):
 	def __init__(self):
-		print('Welcome to be with Homor!')
+		print('Welcome to be with Homer!')
+		print('Github: https://github.com/fakeyw/Homer')
 		self.Owner = Homer_owner()
 		self.register = self.Owner.register
 		self.put_resp = self.Owner.put_resp

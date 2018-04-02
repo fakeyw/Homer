@@ -58,8 +58,8 @@ class Http_parser(object):
 		headers_list = [ x.upper() for (x,_) in list(headers.items())]
 		if 'DATE' not in headers_list:
 			headers['Date'] = Stime.http_time()
-		if 'CONTENT-TYPE' not in headers_list:
-			headers['Content-Type']	= 'text/plain'
+		#if 'CONTENT-TYPE' not in headers_list:
+		#	headers['Content-Type']	= 'text/plain'
 		if 'SERVER' not in headers_list:
 			headers['Server'] = 'Unknown server'
 		if 'CONNECTION' not in headers_list:

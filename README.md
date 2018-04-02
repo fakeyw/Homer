@@ -1,23 +1,21 @@
 ## About Homor
 
-A light asynchronous web server.
-Feature: Especially easy to suspend request tasks.
+A light asynchronous web server.<br>Feature: <br>Especially easy to suspend request tasks.<br>Can print sitemap
 
 **Usage**
 
 ---
 
-Start
+Start :arrow_down_small:
 
 ```python
+# Python 3
+# only need threading, time, datetime, socket, re
 from Homer import Homer
 Site = Homer()
 ```
-Register a url
->About user callback standered:
-  prefer the decorator like flask, 
- ut cuz this frame supports asynchronous service
- here's something different
+Register a url :arrow_down_small:
+>About user callback standered:<br>prefer the decorator like flask, <br>ut cuz this frame supports asynchronous service<br>here's something different
 ```python
 Site = Request_handler()
 @Site.register('/a/<b>/c',methods=['GET'])
@@ -48,11 +46,9 @@ def home_page(**kw):
 	text = str(method)+'\n'+str(args)+'\n'+str(data)+'\n'+str(req_headers)+'\n'+str(url_params)
 	return {'text':text}
 ```
-How async works?
+​How async works? :arrow_down_small:
 
->Just open two pages at the same time
-127.0.0.1:9000/hang/10/Hello
-127.0.0.1:9000/hang/15/World
+>Just open two pages at the same time<br>127.0.0.1:9000/hang/10/Hello<br>127.0.0.1:9000/hang/15/World
 
 ```python
 import time
@@ -68,7 +64,7 @@ def hang(**kw):
 	t = Thread(target=wait,name='wait')
 	t.start()
 ```
-Other
+Other :arrow_down_small:
 ```python
 @Site.register('/404')
 def home_page(**kw):
@@ -84,9 +80,7 @@ if __name__ == '__main__':
 
 ---
 
-Each request will trigger an `Instant_task`.
-But, u can take the socket acception out in a 'Message Waiting Queue'
-Then retuen `None` to skip the rest of callback
+Each request will trigger an `Instant_task`.<br>But, u can take the socket acception out in a 'Message Waiting Queue'<br>Then retuen `None` to skip the rest of callback<br>
 
 For example:
 request for new msg from a friend
@@ -114,3 +108,13 @@ request for new msg from a friend
   	)
   ```
   Then it will be in queue and taken by a worker as a Response_task soon
+
+**Something more**
+
+---
+
+- about favicon.ico
+- about files
+- about free protocol feature (maybe not only a http server)
+- and sth else XD
+- about 404
