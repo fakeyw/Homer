@@ -58,7 +58,8 @@ class Homer_owner(object): # <- add some setting here?
 				for (k,v) in zip(param_list,add_params):
 					k = pattern.findall(k)[0]
 					param_dict[k] = v
-					
+				
+				test = 1
 				info_dict = dict(
 					method = kw['method'],
 					get_sock = kw['get_sock_outer'](do_resp), 

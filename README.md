@@ -113,8 +113,13 @@ request for new msg from a friend
 
 ---
 
-- about favicon.ico
-- about files
-- about free protocol feature (maybe not only a http server)
-- and sth else XD
-- about 404
+- [ ] about favicon.ico
+- [ ] about static files
+- [ ] about free protocol feature (maybe not only a http server)
+- [ ] about 404
+- [ ] about redirect
+- [x] about file stream
+- [ ] why not split cookies?
+- [ ] localproxy
+- [ ] index of files
+- [ ] ssl support
