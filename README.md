@@ -2,6 +2,25 @@
 
 A light asynchronous web server.<br>Feature: <br>Especially easy to suspend request tasks.<br>Can print sitemap
 
+**Update**
+
+---
+
+2018-6-11 :new:
+
+Code Refactored 
+
+ - Separate worker pool
+ - Separate URL Index
+ - Delete a control layer
+ - Make the code easier to be understand
+
+Maybe next update:
+
+- flex pack length
+- static file
+- configuration module
+
 **Usage**
 
 ---
@@ -65,6 +84,9 @@ def hang(**kw):
 	t.start()
 ```
 Other :arrow_down_small:
+
+If a URL's callback wasn't registered, it'll automatically redirect it to /404
+
 ```python
 @Site.register('/404')
 def home_page(**kw):
@@ -86,6 +108,7 @@ For example:
 request for new msg from a friend
 
 1. If you have it now, just return it.
+
 2. If not, use `kw['get_sock']()` in callback so that this can free current worker. 
   When you got the new msg, put `{'sock':...,'headers':{...},'text':'...'}` 
   ('status_code' & 'status_msg' in resp are also avaliable)
@@ -95,7 +118,7 @@ request for new msg from a friend
   def home_page(**kw):
       saved_sockets['ZIM7KASD22SD'] = kw['get_sock']() 
       return
-
+  
   Site.put_resp(	
   		saved_sockets['ZIM7KASD22SD'],		#sock
   		{								#info

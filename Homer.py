@@ -9,14 +9,8 @@ from main.Urls import Url_handler
 import threading
 import time
 from main.Tasks import Instant_task,Response_task
-
-
 __LOCK__ = threading.Lock()
 
-'''
-Outer sys
-may giving statistics
-'''
 class Homer(object):
 	def __init__(self):
 		print('Welcome to be with Homer!')
@@ -71,8 +65,6 @@ class Homer(object):
 		__LOCK__.acquire()
 		self.resp_Q.put(resp_task_info)
 		__LOCK__.release()
-		
-	
 		
 	def info(self):
 		pass
