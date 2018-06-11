@@ -15,7 +15,7 @@ from Homer import Homer
 Site = Homer()
 ```
 Register a url :arrow_down_small:
->About user callback standered:<br>prefer the decorator like flask, <br>but cuz this frame supports asynchronous service<br>here's something different
+>About user callback standered:<br>prefer the decorator like flask, <br>but cuz I didn't make the Global var routing<br>just take a easier way to pass the params
 ```python
 Site = Request_handler()
 @Site.register('/a/<b>/c',methods=['GET'])
@@ -123,3 +123,4 @@ request for new msg from a friend
 - [ ] localproxy
 - [ ] index of files
 - [ ] ssl support
+- [x] register api function, not wrapper
