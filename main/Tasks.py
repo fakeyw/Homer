@@ -93,7 +93,7 @@ class Response_task(Task): #Take a HANGED UP link and only make a response
 	def run(self):
 		response = parser.pack(headers=self.info.pop('headers'),text=self.info.pop('text'),**self.info)
 		#print(response)
-		self.sock.sendall(response.encode('utf-8'))
+		self.sock.sendall(response)
 		self.sock.close()
 		
 		

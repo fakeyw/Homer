@@ -44,6 +44,8 @@ class Homer(object):
 		#pass queue needed in func to caller, temporarily 
 		resp_Q = self.resp_Q
 		accepted_Q = self.Receiver.accepted_queue
+		index = self.Web_index.callback_index
+		
 		task = None
 		__LOCK__.acquire()
 		if not resp_Q.is_empty(): #resp first
@@ -57,7 +59,7 @@ class Homer(object):
 			if current_accepted == None:
 				return None
 			else:
-				task = Instant_task(current_accepted,self.callback_index)
+				task = Instant_task(current_accepted,index)
 		return task
 		
 	def put_resp(self,sock,info):
