@@ -2,7 +2,7 @@ from Homer import Homer
 import time
 from threading import Thread
 
-Site = Homer()
+Site = Homer(ssl=True,cert="cert/cert.pem",key="cert/key.pem")
 
 @Site.register('/test/<p1>/<p2>/aaa')
 def home_page(**kw):

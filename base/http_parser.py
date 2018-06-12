@@ -18,37 +18,41 @@ class Http_parser(object):
 		args = dict()
 		data = dict()
 		
-		try:
+		if raw_text:
 			#print(raw_text)
-			front,raw_data = raw_text.decode('utf-8').split('\r\n\r\n')
-			for i in raw_data.split('&'):
-				k,v = i.split('=')
-				data[k] = v
-		except ValueError as e: #no post data
-			front = raw_text.decode('utf-8')
-		print('front:',front)
-		method,url,raw_args,version,raw_headers = compiler.findall(front)[0]
-		if raw_args != '':
-			#print('arg:',raw_args)
-			for i in raw_args.split('&'):
-				k,v = i.split('=')
-				args[k] = v
-		
-		for i in re.findall(r'(.*): ([^\r\n]*)',raw_headers):
-			if len(i) == 2:
-				[k,v] = i
-				headers[k] = v
+			try:
+				front,raw_data = raw_text.decode('utf-8').split('\r\n\r\n')
+				for i in raw_data.split('&'):
+					res = re.findall(r'(.*?)=(.*)', i)
+					if len(res) != 0:
+						print("res:",res)
+						data[res[0][0]] = res[0][1]
+			except ValueError as e: #no post data
+				front = raw_text.decode('utf-8')
+				
+			#print('Front part:',front)
+			method,url,raw_args,version,raw_headers = compiler.findall(front)[0]
+			if raw_args != '':
+				#print('arg:',raw_args)
+				for i in raw_args.split('&'):
+					k,v = i.split('=')
+					args[k] = v
 			
-		info = {
-			'method':method,
-			'url':url,
-			'version':version,
-			'headers':headers,
-			'args':args,
-			'data':data
-			}
-			
-		return info
+			for i in re.findall(r'(.*): ([^\r\n]*)',raw_headers):
+				if len(i) == 2:
+					[k,v] = i
+					headers[k] = v
+				
+			info = {
+				'method':method,
+				'url':url,
+				'version':version,
+				'headers':headers,
+				'args':args,
+				'data':data
+				}
+				
+			return info
 	
 	#response
 	#headers : dict()

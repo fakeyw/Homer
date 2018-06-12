@@ -144,6 +144,12 @@ request for new msg from a friend
 - [x] about file stream
 - [ ] why not split cookies?
 - [ ] localproxy
-- [ ] index of files
+- [ ] index page of files
 - [ ] ssl support
 - [x] register api function, not wrapper
+- [ ] Create web app from a CONF file
+- [ ] More reliable worker pool
+- [ ] service states
+- [ ] debug mode
+- [ ] exceptions
+- [ ] log module

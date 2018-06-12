@@ -6,19 +6,20 @@ from base.tiny_Q import QPOOL
 from main.Sockets import Link_handler
 from main.Workers import Worker_handler
 from main.Urls import Url_handler
+from main.Files import File_handler
 import threading
 import time
 from main.Tasks import Instant_task,Response_task
 __LOCK__ = threading.Lock()
 
 class Homer(object):
-	def __init__(self):
+	def __init__(self,ssl=False,cert=None,key=None):
 		print('Welcome to be with Homer!')
 		print('Github: https://github.com/fakeyw/Homer')
 		print('[*]Initiating sources...')
 		self.Qs = QPOOL() 
 		self.resp_Q = self.Qs.createQ(name='resp',max_len=5000)
-		self.Receiver = Link_handler() #这里应该有一些参数
+		self.Receiver = Link_handler(ssl,cert,key) #这里应该有一些参数
 		self.Consume_factory = Worker_handler(self.get_task) #这里应该有一些参数
 		self.Web_index = Url_handler()
 	
@@ -32,7 +33,7 @@ class Homer(object):
 		self.Consume_factory.run()
 		self.Receiver.run(host=host,port=port)
 		print('\nReady for service')
-		print("\nSite map:\n%s" % self.site_map())
+		print("\nSite map:\n%s\n" % self.site_map())
 		
 	def get_task(self):
 		#pass queue needed in func to caller, temporarily 
