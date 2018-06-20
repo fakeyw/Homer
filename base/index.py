@@ -3,16 +3,28 @@ class Index(object):
 		self.root_dict = Layer(0,value=rootobj)
 		self.depth = 1
 		self.tree_str = list()
+		self.tree_dfs = [self.tree_dfs0,self.tree_dfs1]
 		
 	def __str__(self):
 		pass
+		
+	def __iter__(self):
+		return self.gen_dfs(self.root_dict,[])
+	
+	def gen_dfs(self,dict,parents):
+		for name,sub_dict in dict.items():
+			route_now = parents+[name]
+			yield route_now
+			for i in self.gen_dfs(sub_dict,route_now):
+				yield i
 		
 	def find(self,route):
 		p = self.root_dict
 		for i in route:
 			p = p[i]
 		return p.value
-		
+	#route - ['top','mid','mid',...]
+	#obj - any object
 	def register(self,route,obj):
 		p = self.root_dict
 		layer = len(route)
@@ -46,6 +58,7 @@ class Index(object):
 		p.value = obj
 		return True
 		
+	#delete the obj
 	def delete(self,route): #delete one element
 		p = self.root_dict
 		for i in route:
@@ -54,6 +67,7 @@ class Index(object):
 			p = p[i]
 		p.value =  None
 		
+	#delete the branch
 	def cut(self,route):	#delete the element with its dict (all subelements)
 		p = self.root_dict
 		for i in route[:-1]:
@@ -99,20 +113,35 @@ class Index(object):
 #+---B
 #    +---F
 
-	def tree(self):
+	def tree(self,type=0):
 		self.tree_str.append("ROOT")
-		self.tree_dfs(self.root_dict,"")
+		self.tree_dfs[type](self.root_dict,"")
 		return "\n".join(self.tree_str)
 		
-	def tree_dfs(self,dict,front_str_above):
+	def tree_dfs0(self,dict,front_str_above):
+		#继承上层前缀
 		str = front_str_above
+		#展开本层元素
 		layers = list(dict.items())
 		if len(layers) != 0:
 			for name,sub_dict in layers[:-1]: #由上一级决定下一级的前缀
+				#处理本层非最后一个元素
+				self.tree_str.append(str+"├─ "+name)
+				self.tree_dfs0(sub_dict,str+"│  ")
+			#处理最后一个元素
+			self.tree_str.append(str+"└─ "+layers[-1][0])
+			self.tree_dfs0(layers[-1][1],str+"   ")
+		return 0
+	
+	def tree_dfs1(self,dict,front_str_above):
+		str = front_str_above
+		layers = list(dict.items())
+		if len(layers) != 0:
+			for name,sub_dict in layers[:-1]: 
 				self.tree_str.append(str+"+---"+name)
-				self.tree_dfs(sub_dict,str+"|   ")
+				self.tree_dfs1(sub_dict,str+"|   ")
 			self.tree_str.append(str+"+---"+layers[-1][0])
-			self.tree_dfs(layers[-1][1],str+"    ")
+			self.tree_dfs1(layers[-1][1],str+"    ")
 		return 0
 
 #Structure for every layer of index

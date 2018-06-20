@@ -30,4 +30,4 @@ def home_page(**kw):
 	return {'text':'Just 404'}
 	
 if __name__ == '__main__':
-	Site.run(host='127.0.0.1',port=9000)
+	Site.run(host='127.0.0.1',port=9000,debug=True)

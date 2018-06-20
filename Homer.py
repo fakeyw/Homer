@@ -1,3 +1,5 @@
+import inspect
+
 import sys
 import os
 sys.path.insert(0,os.path.dirname(os.path.realpath(__file__)))
@@ -7,12 +9,14 @@ from main.Sockets import Link_handler
 from main.Workers import Worker_handler
 from main.Urls import Url_handler
 from main.Files import File_handler
+from main.Debugger import Process_handler,Debugger
 import threading
 import time
 from main.Tasks import Instant_task,Response_task
 __LOCK__ = threading.Lock()
 
 class Homer(object):
+
 	def __init__(self,ssl=False,cert=None,key=None):
 		print('Welcome to be with Homer!')
 		print('Github: https://github.com/fakeyw/Homer')
@@ -22,14 +26,18 @@ class Homer(object):
 		self.Receiver = Link_handler(ssl,cert,key) #这里应该有一些参数
 		self.Consume_factory = Worker_handler(self.get_task) #这里应该有一些参数
 		self.Web_index = Url_handler()
-	
+		self.Debugger = None
+		
 	def register(self,url,**kw):
 		return self.Web_index.Http_register(url,**kw)
 		
 	def site_map(self):
 		return self.Web_index.site_map()
 		
-	def run(self,host='127.0.0.1',port=8989):
+	def run(self,host='127.0.0.1',port=8989,debug=False):
+		if debug:
+			self.Debugger = Debugger()
+			self.Debugger.run()
 		self.Consume_factory.run()
 		self.Receiver.run(host=host,port=port)
 		print('\nReady for service')

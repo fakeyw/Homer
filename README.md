@@ -6,7 +6,11 @@ A light asynchronous web server.<br>Feature: <br>Especially easy to suspend requ
 
 ---
 
-2018-6-11 :new:
+2018-6-12:new:
+
+- SSL link avaliable
+
+2018-6-11 
 
 Code Refactored 
 
@@ -144,12 +148,12 @@ request for new msg from a friend
 - [x] about file stream
 - [ ] why not split cookies?
 - [ ] localproxy
-- [ ] index page of files
-- [ ] ssl support
+- [ ] index page of files "http://aaaa/bbbb/"  -- index "http://aaa/bbb" -- page
+- [x] ssl support
 - [x] register api function, not wrapper
 - [ ] Create web app from a CONF file
 - [ ] More reliable worker pool
 - [ ] service states
-- [ ] debug mode
+- [ ] debug mode （Debugger）
 - [ ] exceptions
 - [ ] log module

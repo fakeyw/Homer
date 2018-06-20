@@ -5,5 +5,3 @@ class a(object):
 	def add(self,k,v):
 		self.dict[k] = v
 		
-	
-	
