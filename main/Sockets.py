@@ -14,6 +14,7 @@ class Main_sock(threading.Thread): #Socket not work in main thread
 		self.max_conn = max_conn
 		self.socket = socketobj
 		self.callback = callback #How to deal acceptions
+		self.ssl_open = None
 		if ssl_open == True:
 			exist_c,per_c= file_check(cert)
 			exist_k,per_k = file_check(key)
