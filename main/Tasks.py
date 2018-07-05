@@ -25,13 +25,14 @@ class Instant_task(Task): #resp part is included in callback function
 		
 	def run(self): #read -> parse -> callback
 		http = b''
-		while True:
+		read_time = 0
+		while parser.gon(http):
 			data = self.sock.recv(1024)
 			if data:
 				http += data
 			else:
-				break
-			if len(data) < 1024:
+				read_time += 1
+			if read_time > 4:
 				break
 		info = parser.parse(http)
 		Notice = '[*]Received request from: %s:%s ' % self.addr

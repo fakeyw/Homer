@@ -25,7 +25,7 @@ class Http_parser(object):
 				for i in raw_data.split('&'):
 					res = re.findall(r'(.*?)=(.*)', i)
 					if len(res) != 0:
-						print("res:",res)
+						#print("res:",res)
 						data[res[0][0]] = res[0][1]
 			except ValueError as e: #no post data
 				front = raw_text.decode('utf-8')
@@ -41,18 +41,49 @@ class Http_parser(object):
 			for i in re.findall(r'(.*): ([^\r\n]*)',raw_headers):
 				if len(i) == 2:
 					[k,v] = i
-					headers[k] = v
-				
+					if k == "Cookie":
+						cookie_list = v.split('; ')
+						print("LIST=",cookie_list)
+						cookie_dict = {}
+						for i in cookie_list:
+							try:
+								c = re.findall(r'(.*?)=([^\r\n]*)',i)[0]
+								print(c)
+								cookie_dict[c[0]] = c[1]
+							except Exception as e:
+								pass
+						headers[k] = cookie_dict
+					else:
+						headers[k] = v
+					
+			end = False
+			try:
+				if headers['Content-Length']!="0" and len(raw_data)!=0:
+					end = True
+			except Exception as e:
+				end = True
+			
 			info = {
 				'method':method,
 				'url':url,
 				'version':version,
 				'headers':headers,
 				'args':args,
-				'data':data
+				'data':data,
+				'end':end
 				}
 				
 			return info
+			
+	def gon(self,text):
+		#print("PART=",text)
+		if text == b'':
+			return True
+		info = self.parse(text)
+		if info["end"]:
+			return False
+		else:
+			return True
 	
 	#response
 	#headers : dict()
@@ -68,8 +99,10 @@ class Http_parser(object):
 			headers['Server'] = 'Unknown server'
 		if 'CONNECTION' not in headers_list:
 			headers['Connection'] = 'keep-alive'
+		if "ACCESS-CONTROL-ALLOW-ORIGIN":
+			headers['Access-Control-Allow-Origin'] = '*'
 		
-		status_line = 'HTTP/1.1 {code} {msg}\n'.format(code=status_code,msg=status_msg)
+		status_line = 'HTTP/1.1 {code} {msg}\r\n'.format(code=status_code,msg=status_msg)
 		head_info = ''.join([ '%s: %s\r\n' % (x,y) for (x,y) in list(headers.items())])
 		
 		resp = ''

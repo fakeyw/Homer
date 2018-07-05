@@ -6,6 +6,11 @@ A light asynchronous web server.<br>Feature: <br>Especially easy to suspend requ
 
 ---
 
+2018-7-5
+
+- flex pack length
+- debug mode
+
 2018-6-12:new:
 
 - SSL link avaliable
@@ -18,12 +23,6 @@ Code Refactored
  - Separate URL Index
  - Delete a control layer
  - Make the code easier to be understand
-
-Maybe next update:
-
-- flex pack length
-- static file
-- configuration module
 
 **Usage**
 
@@ -146,7 +145,7 @@ request for new msg from a friend
 - [ ] about 404
 - [ ] about redirect
 - [x] about file stream
-- [ ] why not split cookies?
+- [x] why not split cookies?
 - [ ] localproxy
 - [ ] index page of files "http://aaaa/bbbb/"  -- index "http://aaa/bbb" -- page
 - [x] ssl support
